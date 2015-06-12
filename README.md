@@ -1,6 +1,6 @@
 # Instabrain
 
-Instabrain is a hackable python tool for real-time fMRI, using FSL commands for image processing. 
+Instabrain is a hackable python tool for real-time fMRI, using FSL commands for some image processing. 
 
 ## Requirements
 
@@ -11,11 +11,12 @@ You will need the following installed:
 ## Getting Started
 
 You will need to put the following items in `instabrain/config.txt`:
-* FSL installation directory, e.g.: `fsl_dir=/usr/local/fsl`
 * Directory where instabrain can store temporary images: `scratch_dir=/path/to/scratch`
 * Directory where you store .txt files of study details: `study_dir=/path/to/study/files`
 * Directory where incoming images appear: `watch_dir=/path/to/watch`
+* IP to serve realtime output files on: `server_ip=127.0.0.1`
 * Port to serve realtime output files on: `server_port=1234`
+
 It is recommended that you keep all directories on the same hard disk.
 
 In `study_dir`, you can then input a .txt file of your study, for example:

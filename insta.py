@@ -4,7 +4,9 @@
 
 import argparse
 import multiprocessing as mp
+import os
 
+FSLDIR = os.getenv('FSLDIR', '/usr/local/fsl')
 
 parser = argparse.ArgumentParser(description='Function arguments')
 parser.add_argument('-s','--study', help='Study name',default='none')
@@ -31,7 +33,8 @@ def run():
     ###--------------###
     # workflow:
 
-    # options:
+    # modes:
+    # 0) quit
     # 1) test realtime
     # 2) reference anatomical
     # 3) reference functional

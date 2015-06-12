@@ -2,7 +2,6 @@
 # Configuration #
 #################
 
-fsl_dir=/usr/local/fsl
 scratch_dir=~/Dropbox/instabrain/sample_dirs/sample_scratch
 study_dir=~/Dropbox/instabrain/sample_dirs/sample_study 
 watch_dir=~/Dropbox/instabrain/sample_dirs/sample_watch 
