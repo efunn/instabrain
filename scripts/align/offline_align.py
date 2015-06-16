@@ -82,15 +82,11 @@ def gen_all_aligns(basedir='/belly/20150604-diffnfb-test', num_runs=5):
 
     al.add_align(align1=(refdir+'/rfi2rai.mat'),
                  align2=(refdir+'/rai2std.mat'),
-                 namefirst=rfi,
-                 namelast=std,
+                 namefirst='rfi',
+                 namelast='std',
                  outdir=refdir)
 
-al.add_align(align1=(refdir+'/rfi2rai.mat'),
-             align2=(refdir+'/rai2std.mat'),
-             namefirst='rfi',
-             namelast='std',
-             outdir=refdir)
+
     ######################################
     # motion correct rest of runs to RFI #
     # (RFI not brain extracted)          #
