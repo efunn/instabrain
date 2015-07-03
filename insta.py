@@ -5,6 +5,8 @@
 import argparse
 import multiprocessing as mp
 import os
+from insta_data import InstaData
+import insta_run as ir
 
 FSLDIR = os.getenv('FSLDIR', '/usr/local/fsl')
 
@@ -13,39 +15,15 @@ parser.add_argument('-s','--study', help='Study name',default='none')
 args = parser.parse_args()
 
 def run():
-    # init:
-    # reads in config and study details
-    # starts processes accordingly
 
-    # main process: do the heavy lifting
+    idata = InstaData()
 
-    #--------------------------------
+    while idata.run_mode != 'quit':
+        execute(idata)
 
-    # watcher process: watches /watch_dir and, depending on protocol stage, moves files accordingly
-
-    #--------------------------------
-
-    # server process: serves data.txt
-
-    #--------------------------------
+def execute(idata):
+    pass
 
 
-    ###--------------###
-    # workflow:
-
-    # modes:
-    # 0) quit
-    # 1) test realtime
-    # 2) reference anatomical
-    # 3) reference functional
-    # 4) functional localizer
-    # 5) re-localizer
-    # 6) neurofeedback
-
-
-    ###--------------###
-
-    return
-
-if __name == "__main__":
+if __name__ == "__main__":
     run()
