@@ -1,9 +1,0 @@
-#################
-# Configuration #
-#################
-
-scratch_dir=~/Dropbox/instabrain/sample_dirs/sample_scratch
-study_dir=~/Dropbox/instabrain/sample_dirs/sample_study 
-watch_dir=~/Dropbox/instabrain/sample_dirs/sample_watch 
-server_ip=127.0.0.1
-server_port=27000
