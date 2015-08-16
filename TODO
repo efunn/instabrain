@@ -1,0 +1,9 @@
+BUILD CLIENT:
+control.py or other web interface
+
+On demand:
+r.post(insta_targets['set_mode'],mode)
+
+About once a second:
+r.get(insta_mode.json)
+r.get(insta_complete.json)

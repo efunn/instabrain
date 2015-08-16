@@ -1,0 +1,5 @@
+/NumWaves {num_waves}
+/NumPoints {num_points}
+/PPheights {pp_heights}
+/matrix
+{matrix}
