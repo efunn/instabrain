@@ -3,7 +3,7 @@ import scripts.process.fsl_mask as fm
 import scripts.process.fsl_glm as fg
 import multiprocessing as mp
 import requests as r
-import os, shutil
+import os, shutil, subprocess, shlex
 from time import sleep
 
 class VolumeProcessor(object):
@@ -36,8 +36,9 @@ class VolumeProcessor(object):
                 os.mkdir(self.proc_dirs[directory])
             except:
                 pass
-        # os.mkdir(self.insta_targets['set_mode'])
-        # os.mkdir(self.insta_targets['set_complete'])
+        self.proc_dirs['serve_betas'] = base_proc_dir + '/serve/betas'
+        os.mkdir(self.proc_dirs['serve_betas'])
+
         self.proc_dirs['rai_img'] = self.proc_dirs['ref'] + '/rai'
         self.proc_dirs['rfi_img'] = self.proc_dirs['ref'] + '/rfi'
         self.proc_dirs['loc_img'] = self.proc_dirs['loc'] + '/bold'
@@ -45,6 +46,7 @@ class VolumeProcessor(object):
                                      + '/data/standard/'
                                      + config['ref_mprage'])
         self.proc_dirs['tstats_img'] = self.proc_dirs['ref'] + '/tstats'
+        self.proc_dirs['betas_img'] = self.proc_dirs['ref'] + '/betas'
 
         self.MPRAGE_SLICES = config['mprage_slices']
         self.EPI_MODES = ['rfi', 'loc', 'nfb']
@@ -59,7 +61,10 @@ class VolumeProcessor(object):
             self.set_complete_stage('rai')
         if os.path.isfile(self.proc_dirs['rfi_img']+'.nii.gz'):
             self.set_complete_stage('rfi')
+        if os.path.isfile(self.proc_dirs['rai_img']+'_rfi.nii.gz'):
+            self.set_complete_stage('warp2rfi')
         if os.path.isfile(self.proc_dirs['tstats_img']+'.nii.gz'):
+            self.set_complete_stage('glm')
             self.set_complete_stage('loc')
         if all(os.path.isfile(self.proc_dirs['ref'] + '/'
                               + self.roi_masks[roi]['name']
@@ -129,42 +134,45 @@ class VolumeProcessor(object):
                 self.on_epi_run_complete(epi_mode)
 
     def on_epi_run_complete(self, epi_mode):
-        if epi_mode == 'rfi' or epi_mode == 'loc':
-            self.on_stage_ready(epi_mode)
-        elif epi_mode == 'nfb':
-            pass # wait for next run
-            # archive all proc images here?
-            # or just let next run overwrite?
-            # self.epi_vol_count = 0
-
-    def on_stage_ready(self, stage):
-        self.set_ready_stage(stage)
-        self.get_complete_stages()
-        if (stage == 'rfi'
-                and self.complete_stages['roi'] == 'complete'
-                and self.complete_stages['rai'] == 'complete'):
-            self.on_stage_complete('roi')
-        elif (stage == 'loc'
-                  and self.complete_stages['rfi'] == 'complete'):
-            self.on_stage_complete('rfi')
-
-    def on_stage_complete(self, stage):
-        self.set_complete_stage(stage)
-        self.get_complete_stages()
-        if ((stage == 'roi' or stage == 'rai')
-                and self.complete_stages['roi'] == 'complete'
-                and self.complete_stages['rai'] == 'complete'
-                and self.complete_stages['rfi'] == 'ready'):
+        if epi_mode == 'rfi': 
             self.pool.apply_async(func = proc_rfi,
                                   args = (self.proc_dirs,
                                           self.roi_masks),
                                   callback = self.on_stage_complete)
-        elif (stage == 'rfi'
+        elif epi_mode == 'loc':
+            self.on_stage_ready(epi_mode)
+        elif epi_mode == 'nfb':
+            pass # wait for next run
+
+    def on_stage_ready(self, stage):
+        self.set_ready_stage(stage)
+        self.get_complete_stages()
+        if (stage == 'loc'
+                and self.complete_stages['warp2rfi'] == 'complete'):
+            self.on_stage_complete('warp2rfi')
+
+    def on_stage_complete(self, stage):
+        self.set_complete_stage(stage)
+        self.get_complete_stages()
+        if ((stage == 'roi' or stage == 'rai' or stage == 'rfi')
+                and self.complete_stages['roi'] == 'complete'
+                and self.complete_stages['rai'] == 'complete'
+                and self.complete_stages['rfi'] == 'complete'):
+            self.pool.apply_async(func = proc_warp2rfi,
+                                  args = (self.proc_dirs,
+                                          self.roi_masks),
+                                  callback = self.on_stage_complete)
+        elif (stage == 'warp2rfi'
                 and self.complete_stages['loc'] == 'ready'):
+            self.pool.apply_async(func = proc_glm,
+                                  args = (self.proc_dirs,
+                                          self.loc_design,
+                                          self.tr),
+                                  callback = self.on_stage_complete)
+        elif stage == 'glm':
             self.pool.apply_async(func = proc_loc,
                                   args = (self.proc_dirs,
                                           self.loc_design,
-                                          self.tr,
                                           self.roi_masks),
                                   callback = self.on_stage_complete)
 
@@ -207,6 +215,9 @@ def proc_rfi(proc_dirs, roi_masks):
                      out_bold=proc_dirs['rfi_img'])
     fa.gen_bold_3d_brain(proc_dirs['rfi_img'],
                          proc_dirs['rfi_img']+'_brain')
+    return 'rfi'
+
+def proc_warp2rfi(proc_dirs, roi_masks):
     # generate struct2rfi and combine std2struct and struct2rfi
     fa.gen_bold2struct(in_bold=proc_dirs['rfi_img']+'_brain',
                        ref_struct=proc_dirs['rai_img']+'_brain',
@@ -234,16 +245,44 @@ def proc_rfi(proc_dirs, roi_masks):
                        ref_img=proc_dirs['rfi_img'])
         fm.thresh_bin(base_roi + '_rfi',
                       base_roi,
-                      thr=str(110)) # cut out all voxels for now
-    return 'rfi'
+                      thr=str(110)) # set below 100 to use probability mask
+    return 'warp2rfi'
 
-def proc_loc(proc_dirs, design, tr, roi_masks):
-    # generate 4d image
+def proc_glm(proc_dirs, design, tr):
+    # generate 4d loc image
     fa.gen_bold_4d(proc_dirs['loc'],
                    proc_dirs['loc_img'])
     # run fsl_glm and generate functional masks
     fg.run_glm(proc_dirs, design, tr)
+    return 'glm'
+
+def proc_loc(proc_dirs, design, roi_masks):
+    # view glm and select rois
     fg.show_glm(proc_dirs, roi_masks)
+
+    # post-process glm and extract betas
+    for roi in range(len(roi_masks)):
+        base_roi = (proc_dirs['ref'] + '/'
+                    + roi_masks[roi]['name'])
+        out_dir = (proc_dirs['serve_betas'] + '/'
+                   + roi_masks[roi]['name'])
+        fm.extract_roi(proc_dirs['betas_img'],
+                       out_dir,
+                       (proc_dirs['ref'] + '/'
+                        + roi_masks[roi]['name']))
+        cmd = ('split -l 1 -d ' + out_dir + ' '
+               + out_dir + '_')
+        run_bash(cmd)
+        for beta in range(len(design)+4):
+            if beta < len(design):
+                cmd = ('mv ' + out_dir + '_' + str(beta).zfill(2) + ' '
+                       + out_dir + '_' + design[beta]['label']) 
+            elif beta == len(design):
+                cmd = ('mv ' + out_dir + '_' + str(beta).zfill(2) + ' '
+                       + out_dir + '_constant') 
+            else:
+                cmd = ('rm ' + out_dir + '_' + str(beta).zfill(2)) 
+            run_bash(cmd)
     return 'loc'
 
 def proc_epi_vol(in_img, proc_dirs, roi_masks,
@@ -288,6 +327,10 @@ def proc_epi_vol(in_img, proc_dirs, roi_masks,
         copy_and_remove(proc_dirs['proc'] + in_name + '_mc_s.nii.gz',
                          proc_dirs['loc'])
     return (epi_mode, in_name)
+
+def run_bash(cmd):
+    cmd_line = shlex.split(cmd)
+    subprocess.call(cmd_line)
 
 def copy_and_remove(src,dst):
         while True:

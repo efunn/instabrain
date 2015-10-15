@@ -15,6 +15,8 @@ class fslWatcher(FileSystemEventHandler):
             f.write(json.dumps({'roi': 'incomplete',
                                 'rai': 'incomplete',
                                 'rfi': 'incomplete',
+                                'warp2rfi': 'incomplete',
+                                'glm': 'incomplete',
                                 'loc': 'incomplete'}))
         self.vp = VolumeProcessor(config)
         self.set_run_mode('idle')

@@ -10,7 +10,6 @@ parser = argparse.ArgumentParser(description='Function arguments')
 parser.add_argument('-s','--study', help='Study name',default='none')
 args = parser.parse_args()
 
-# replace with yaml load
 with open('config.yaml') as f:
     CONFIG = yaml.load(f)
     CONFIG['fsldir'] = os.getenv('FSLDIR', '/usr/local/fsl')

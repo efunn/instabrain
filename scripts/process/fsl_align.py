@@ -14,7 +14,7 @@ def dcm2nii(in_img,
             out_dir,
             mode):
     if mode == 'dcm2nii':
-        # VANILLA DCM2NII
+        # DCM2NII
         cmd = ('dcm2nii -f y -g n -d n -e n -p n -v n -o ' 
               + out_dir + ' ' + in_img)
         while not os.path.exists(out_dir+'/'
@@ -22,7 +22,7 @@ def dcm2nii(in_img,
                                  +'.nii'):
             run_bash(cmd)
     elif mode == 'dcm2niix':
-        # FANCY DCM2NIIX
+        # DCM2NIIX
         in_img_name = in_img.rsplit('.',1)[0].rsplit('/',1)[-1]
         out_img = out_dir + '/' + in_img_name + '.nii'
         in_dir = out_dir + '/' + in_img_name
@@ -136,11 +136,11 @@ def gen_bold_mean(in_bold,
 
 def gen_struct_from_slice(in_dir, out_img, mode):
     if mode == 'dcm2nii':
-        # VANILLA DCM2NII
+        # DCM2NII
         cmd = 'dcm2nii -g n ' + in_dir
-    # currently, anatomical still w/ dcm2nii in nii mode
+    # currently, anatomical still processed w/ dcm2nii in nii mode
     elif mode == 'dcm2niix' or mode == 'none':
-        # FANCY DCM2NIIX
+        # DCM2NIIX
         cmd = ('dcm2niix -o ' + out_img.rsplit('/',1)[0]
                + ' -f ' + out_img.rsplit('/',1)[1] + ' ' + in_dir)
     run_bash(cmd)
@@ -158,7 +158,6 @@ def gen_struct_brain(in_struct,
 
 def gen_bold_3d_brain(in_bold,
                       out_bold):
-    # add _brain_mask file here
     cmd = 'bet ' + in_bold + ' ' + out_bold + ' -f 0.5 -g 0 -m'
     run_bash(cmd)
 

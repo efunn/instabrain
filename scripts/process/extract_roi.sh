@@ -22,8 +22,4 @@ while getopts ":i:m:o:" opt; do
   esac
 done
 
-# echo $in_img
-# echo $mask_img
-# echo $out_txt
-
 fslmeants -i "$in_img" -m "$mask_img" >> "$out_txt"
